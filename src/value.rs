@@ -1,79 +1,82 @@
-#[derive(Clone)]
-pub struct Value {
+use std::cell::RefCell;
+use std::rc::Rc;
+
+pub struct Value<'a> {
 	pub data:f64,
 	pub local_grad:f64,
 	pub global_grad:f64,
-	pub first_child:Option<Box<Value>>,
-	pub second_child:Option<Box<Value>>
+	pub first_child:Option<Rc<RefCell<Value<'a>>>>,
+	pub second_child:Option<Rc<RefCell<Value<'a>>>>
 }
 
-pub fn add(mut this: Value, mut other: Value) -> Value { //a + b
-	let data_1 = this.data;
-	let data_2 = other.data;
-	this.local_grad += 1.0;
-	other.local_grad += 1.0;
+
+pub fn add<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> Value<'a> { //a + b
+	let data_1 = this.borrow().data;
+	let data_2 = other.borrow().data;
+	this.borrow_mut().local_grad += 1.0;
+	other.borrow_mut().local_grad += 1.0;
 	let parent = Value {
 		data: data_1 + data_2,
 		local_grad: 0.0,
 		global_grad: 0.0,
-		first_child: Some(Box::new(this)),
-		second_child: Some(Box::new(other))
+		first_child: Some(this),
+		second_child: Some(other)
 	};
 	parent
 }
 
 
-pub fn mult(mut this: Value, mut other: Value) -> Value { //a * b
-	let data_1 = this.data;
-	let data_2 = other.data;
-	this.local_grad += data_2;
-	other.local_grad += data_1;
+pub fn mult<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> Value<'a> { //a * b
+	let data_1 = this.borrow().data;
+	let data_2 = other.borrow().data;
+	this.borrow_mut().local_grad += data_2;
+	other.borrow_mut().local_grad += data_1;
 	let parent = Value {
 		data: data_1 * data_2,
 		local_grad: 0.0,
 		global_grad: 0.0,
-		first_child: Some(Box::new(this)),
-		second_child: Some(Box::new(other))
+		first_child: Some(this),
+		second_child: Some(other)
 	};
 	parent
 }
 
 
 
-pub fn relu(mut this: Value) -> Value {
-	let mut data_1 = this.data;
+pub fn relu<'a>(this: Rc<RefCell<Value<'a>>>) -> Value<'a> {
+	let mut data_1 = this.borrow().data;
 	let mut grad:f64 = 1.0;
 	if data_1 < 0.0 {
 		data_1 = 0.0;
 		grad = 0.0;
 	}
-	this.local_grad = grad;
+	this.borrow_mut().local_grad = grad;
 	let parent = Value {
 		data: data_1,
 		local_grad: 0.0,
 		global_grad: 0.0,
-		first_child: Some(Box::new(this)),
+		first_child: Some(this),
 		second_child: None
 	};
 	parent
 	
 }
 
-pub fn tanh(mut this: Value) -> Value {
-	let data_1 = this.data;
-	this.local_grad = 1.0 - (data_1.tanh() * data_1.tanh());
+pub fn tanh<'a>(this: Rc<RefCell<Value<'a>>>) -> Value<'a> {
+	let data_1 = this.borrow().data;
+	this.borrow_mut().local_grad = 1.0 - (data_1.tanh() * data_1.tanh());
 	let parent = Value {
 		data: data_1.tanh(),
 		local_grad: 0.0,
 		global_grad: 0.0,
-		first_child: Some(Box::new(this)),
+		first_child: Some(this),
 		second_child: None
 	};
 	parent
 }
 
 
-
+/*
 pub fn backward(this: &mut Value, prev_grad: f64) {
 	this.global_grad = this.local_grad * prev_grad;
 
@@ -105,7 +108,7 @@ pub fn print_graph(this: &Value) {
 		None => ()
 	}
 }
-
+*/
 
 
 fn main() {
