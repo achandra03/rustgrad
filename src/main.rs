@@ -1,4 +1,37 @@
 mod value;
+use rand::Rng;
+
+struct Neuron {
+	pub w: Vec<value::Value>,
+	pub b: value::Value
+}
+
+fn init_neuron(n: &mut Neuron, size: i64) {
+	let mut rng = rand::thread_rng();
+	let mut v = Vec::new();
+
+	for i in 0..size {
+		let val = value::Value {
+			data: rng.gen_range(-1.0..1.0),
+			local_grad: 0.0, 
+			global_grad: 0.0, 
+			first_child: None, 
+			second_child: None
+		};
+		v.push(val)
+	}
+
+	n.w = v;
+
+	let val = value::Value {
+		data: 0.0,
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: None,
+		second_child: None
+	};
+	n.b = val;
+}
 
 fn main() {
 	let a = value::Value{
