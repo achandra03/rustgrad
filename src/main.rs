@@ -81,10 +81,12 @@ fn activate_neuron(n: &mut Neuron, x: &mut Vec<Rc<RefCell<value::Value>>>) -> va
 		v = nv;
 	}
 
+	let val =  value::add(Rc::clone(&n.b), Rc::new(RefCell::new(v.remove(0))));
+
 	if n.relu {
-		value::relu(Rc::new(RefCell::new(v.remove(0))))
+		value::relu(Rc::new(RefCell::new(val)))
 	} else {
-		value::tanh(Rc::new(RefCell::new(v.remove(0))))
+		value::tanh(Rc::new(RefCell::new(val)))
 	}
 }
 
@@ -144,18 +146,6 @@ fn forward(net: &mut NeuralNetwork, x: &mut Vec<Vec<Rc<RefCell<value::Value>>>>)
 
 fn main() {
 
-	/*
-	let mut n = NeuralNetwork {
-		layers: vec![]
-	};
-	add_layer(&mut n, 3, 1, true);
-
-	let mut q = vec![];
-	
-
-	forward(&mut n, &mut q);
-	*/
-
 	let mut p = init_neuron(3, true);
 
 	let mut ve = vec![];
@@ -170,7 +160,16 @@ fn main() {
 		ve.push(Rc::new(RefCell::new(v)));
 	}
 
-	let val = activate_neuron(&mut p, &mut ve);
-	println!("{}", val.data);
+	let mut val = activate_neuron(&mut p, &mut ve);
+	println!("Value is {}", val.data);
+	println!("\n");
+	val.local_grad = 1.0;
+	value::backward(&mut val, 1.0);
+
+	for i in 0..p.w.len() {
+		let w = &p.w[i];
+		let mut m = w.borrow_mut();
+		println!("Neuron with weight {} and gradient {}", m.data, m.global_grad);
+	}
 
 }

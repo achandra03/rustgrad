@@ -76,19 +76,19 @@ pub fn tanh(this: Rc<RefCell<Value>>) -> Value {
 }
 
 
-/*
+
 pub fn backward(this: &mut Value, prev_grad: f64) {
 	this.global_grad = this.local_grad * prev_grad;
 
 	let first_child = &mut this.first_child;
 	match first_child {
-		Some(x) => backward(&mut *x, this.global_grad),
+		Some(x) => backward(&mut x.borrow_mut(), this.global_grad),
 		None => ()
 	}
 
 	let second_child = &mut this.second_child;
 	match second_child {
-		Some(x) => backward(&mut *x, this.global_grad),
+		Some(x) => backward(&mut x.borrow_mut(), this.global_grad),
 		None => ()
 	}
 }
@@ -98,17 +98,17 @@ pub fn print_graph(this: &Value) {
 
 	let first_child = &this.first_child;
 	match first_child {
-		Some(x) => print_graph(&*x),
+		Some(x) => print_graph(&x.borrow()),
 		None => ()
 	}
 
 	let second_child = &this.second_child;
 	match second_child {
-		Some(x) => print_graph(&*x),
+		Some(x) => print_graph(&x.borrow()),
 		None => ()
 	}
 }
-*/
+
 
 
 fn main() {
