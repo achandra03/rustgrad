@@ -3,6 +3,7 @@ pub mod value;
 use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::collections::HashMap;
 
 pub struct Neuron {
 	pub w: Vec<Rc<RefCell<value::Value>>>,
@@ -22,10 +23,11 @@ pub struct NeuralNetwork {
 pub fn create_val(x: f64) -> Rc<RefCell<value::Value>> {
 	let v = value::Value {
 		data: x,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: None,
-		second_child: None
+		second_child: None,
+		id: value::random_string(50)
 	};
 	let val = Rc::new(RefCell::new(v));
 	val
@@ -36,27 +38,14 @@ fn init_neuron(size: i64, ac: String) -> Neuron {
 	let mut v = Vec::new();
 
 	for _ in 0..size {
-		let val = value::Value {
-			data: rng.gen_range(-1.0..1.0),
-			local_grad: 0.0, 
-			global_grad: 0.0, 
-			first_child: None, 
-			second_child: None
-		};
-		v.push(Rc::new(RefCell::new(val)));
+		let val = create_val(rng.gen_range(-1.0..1.0));
+		v.push(val);
 	}
-
-	let val = value::Value {
-		data: 0.0,
-		local_grad: 0.0,
-		global_grad: 0.0,
-		first_child: None,
-		second_child: None
-	};
+	let val = create_val(0.0);
 
 	let n = Neuron {
 		w: v,
-		b: Rc::new(RefCell::new(val)),
+		b: val,
 		act: ac
 	};
 
@@ -201,24 +190,18 @@ fn mse(y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<
 		diffs = d;
 	}
 
-	let denom = value::Value {
-		data: len as f64,
-		local_grad: 0.0,
-		global_grad: 0.0,
-		first_child: None,
-		second_child: None
-	};
+	let denom = create_val(len as f64);
 
-	let res = value::div(Rc::new(RefCell::new(diffs.remove(0))), Rc::new(RefCell::new(denom)));
+	let res = value::div(Rc::new(RefCell::new(diffs.remove(0))), denom);
 	res
 }
 
 
 pub fn gradient_descent(net: &mut NeuralNetwork, lr: f64, y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<value::Value>>>) { //step of descent and zeros gradients
 	let mut error = mse(y_true, y_pred);
-	error.local_grad = 1.0;
+	error.global_grad = 1.0;
 	println!("mse is {}", error.data);
-	value::backward(&mut error, 1.0);
+	value::backward(&mut error, 1.0, "".to_string());
 	let layerlen = net.layers.len();
 	for i in 1..layerlen {
 		let layer = &mut net.layers[i];
@@ -231,12 +214,12 @@ pub fn gradient_descent(net: &mut NeuralNetwork, lr: f64, y_true: &mut Vec<Rc<Re
 				let mut weight_mut = weight.borrow_mut();
 				weight_mut.data -= lr * weight_mut.global_grad;
 				weight_mut.global_grad = 0.0;
-				weight_mut.local_grad = 0.0;
+				weight_mut.local_grads = HashMap::new();
 			}
 			let bias = Rc::clone(&neuron.b);
 			let mut bias_mut = bias.borrow_mut();
 			bias_mut.data -= lr * bias_mut.global_grad;
-			bias_mut.local_grad = 0.0;
+			bias_mut.local_grads = HashMap::new();
 			bias_mut.global_grad = 0.0;
 		}
 	}

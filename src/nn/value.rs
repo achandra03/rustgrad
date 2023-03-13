@@ -1,27 +1,41 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use rand::{distributions::Alphanumeric, Rng};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct Value {
 	pub data:f64,
-	pub local_grad:f64,
+	pub local_grads: HashMap<String, f64>,
 	pub global_grad:f64,
 	pub first_child:Option<Rc<RefCell<Value>>>,
-	pub second_child:Option<Rc<RefCell<Value>>>
+	pub second_child:Option<Rc<RefCell<Value>>>,
+	pub id: String
+}
+
+pub fn random_string(len: usize) -> String {
+	let s: String = rand::thread_rng()
+		.sample_iter(&Alphanumeric)
+		.take(len)
+		.map(char::from)
+		.collect();
+	s	
 }
 
 
 pub fn add(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a + b
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
-	this.borrow_mut().local_grad = 1.0;
-	other.borrow_mut().local_grad = 1.0;
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), 1.0);
+	other.borrow_mut().local_grads.insert(i.clone(), 1.0);
 	let parent = Value {
 		data: data_1 + data_2,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: Some(other)
+		second_child: Some(other),
+		id: i
 	};
 	parent
 }
@@ -30,14 +44,16 @@ pub fn add(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a +
 pub fn mult(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a * b
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
-	this.borrow_mut().local_grad = data_2;
-	other.borrow_mut().local_grad = data_1;
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), data_2);
+	other.borrow_mut().local_grads.insert(i.clone(), data_1);
 	let parent = Value {
 		data: data_1 * data_2,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: Some(other)
+		second_child: Some(other),
+		id: i
 	};
 	parent
 }
@@ -45,14 +61,16 @@ pub fn mult(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a 
 pub fn sub(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a - b 
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
-	this.borrow_mut().local_grad = 1.0;
-	other.borrow_mut().local_grad = -1.0;
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), 1.0);
+	other.borrow_mut().local_grads.insert(i.clone(), -1.0);
 	let parent = Value {
 		data: data_1 - data_2,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: Some(other)
+		second_child: Some(other),
+		id: i
 	};
 	parent
 }
@@ -60,27 +78,31 @@ pub fn sub(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a -
 pub fn div(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a / b 
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
-	this.borrow_mut().local_grad = 1.0 / data_2;
-	other.borrow_mut().local_grad = -data_1 / (data_2 * data_2);
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), 1.0 / data_2);
+	other.borrow_mut().local_grads.insert(i.clone(), -data_1 / (data_2 * data_2));
 	let parent = Value {
 		data: data_1 / data_2,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: Some(other)
+		second_child: Some(other),
+		id: i
 	};
 	parent
 }
 
 pub fn pow(this: Rc<RefCell<Value>>, other: f64) -> Value {
 	let data_1 = this.borrow().data;
-	this.borrow_mut().local_grad = other * data_1.powf(other - 1.0);
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), other * data_1.powf(other - 1.0));
 	let parent = Value {
 		data: data_1.powf(other),
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: None
+		second_child: None,
+		id: i
 	};
 	parent
 }
@@ -94,13 +116,15 @@ pub fn relu(this: Rc<RefCell<Value>>) -> Value {
 		data_1 = 0.0;
 		grad = 0.0;
 	}
-	this.borrow_mut().local_grad = grad;
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), grad);
 	let parent = Value {
 		data: data_1,
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: None
+		second_child: None,
+		id: i
 	};
 	parent
 	
@@ -108,36 +132,47 @@ pub fn relu(this: Rc<RefCell<Value>>) -> Value {
 
 pub fn tanh(this: Rc<RefCell<Value>>) -> Value {
 	let data_1 = this.borrow().data;
-	this.borrow_mut().local_grad = 1.0 - (data_1.tanh() * data_1.tanh());
+	let i = random_string(50);
+	this.borrow_mut().local_grads.insert(i.clone(), 1.0 - (data_1.tanh() * data_1.tanh()));
 	let parent = Value {
 		data: data_1.tanh(),
-		local_grad: 0.0,
+		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: None
+		second_child: None,
+		id: i
 	};
 	parent
 }
 
 
-pub fn backward(this: &mut Value, prev_grad: f64) {
-	this.global_grad += this.local_grad * prev_grad;
+pub fn backward(this: &mut Value, prev_grad: f64, prev_id: String) {
+	if prev_id.ne("") {
+		let lg = this.local_grads.get(&prev_id);
+		let mut local_grad = 0.0;
+		match lg {
+			Some(d) => local_grad = *d,
+			None => println!("Not found")
+		};
+
+		this.global_grad += local_grad * prev_grad;
+	}
 
 	let first_child = &mut this.first_child;
 	match first_child {
-		Some(x) => backward(&mut x.borrow_mut(), this.global_grad),
+		Some(x) => backward(&mut x.borrow_mut(), this.global_grad, this.id.clone()),
 		None => ()
 	}
 
 	let second_child = &mut this.second_child;
 	match second_child {
-		Some(x) => backward(&mut x.borrow_mut(), this.global_grad),
+		Some(x) => backward(&mut x.borrow_mut(), this.global_grad, this.id.clone()),
 		None => ()
 	}
 }
 
 pub fn print_graph(this: &Value) {
-	println!("Val: {}, local_grad: {}, global_grad: {}", this.data, this.local_grad, this.global_grad);
+	println!("Val: {}, global_grad: {}", this.data, this.global_grad);
 
 	let first_child = &this.first_child;
 	match first_child {

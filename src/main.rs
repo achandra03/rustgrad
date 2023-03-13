@@ -106,7 +106,8 @@ fn main() {
 		nn::gradient_descent(&mut net, 0.01, &mut y_true, &mut y_pred);
 	}
 	*/
-
+	
+	
 	let mut net = nn::NeuralNetwork {
 		layers:vec![]
 	};
@@ -152,8 +153,9 @@ fn main() {
 	x.push(v);
 	let mut res = nn::forward(&mut net, &mut x).remove(0).remove(0);	
 	println!("{}", res.borrow().data);
-	res.borrow_mut().local_grad = 1.0;
-	nn::value::backward(&mut res.borrow_mut(), 1.0);
+	res.borrow_mut().global_grad = 1.0;
+	nn::value::backward(&mut res.borrow_mut(), 1.0, "".to_string());
 	nn::print_weights(&mut net);
+	
 
 }
