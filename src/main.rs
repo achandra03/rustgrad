@@ -3,27 +3,27 @@ use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-struct Neuron<'a> {
-	pub w: Vec<Rc<RefCell<value::Value<'a>>>>,
-	pub b: Rc<RefCell<value::Value<'a>>>,
+struct Neuron {
+	pub w: Vec<Rc<RefCell<value::Value>>>,
+	pub b: Rc<RefCell<value::Value>>,
 	pub relu: bool
 }
 
-struct Layer<'a> {
-	pub neurons: Vec<Neuron<'a>>,
+struct Layer {
+	pub neurons: Vec<Neuron>,
 	pub outputs: i64
 }
 
-struct NeuralNetwork<'a> {
-	pub layers: Vec<Layer<'a>>
+struct NeuralNetwork {
+	pub layers: Vec<Layer>
 }
 
-fn init_neuron<'a>(size: i64, r: bool) -> Neuron<'a> {
+fn init_neuron(size: i64, r: bool) -> Neuron {
 	let mut rng = rand::thread_rng();
 	let mut v = Vec::new();
 
 	for _ in 0..size {
-		let mut val = value::Value {
+		let val = value::Value {
 			data: rng.gen_range(-1.0..1.0),
 			local_grad: 0.0, 
 			global_grad: 0.0, 
@@ -50,7 +50,7 @@ fn init_neuron<'a>(size: i64, r: bool) -> Neuron<'a> {
 	n
 }
 
-fn activate_neuron<'a>(n: Neuron<'a>, x: Vec<Rc<RefCell<value::Value<'a>>>>) -> value::Value<'a> {
+fn activate_neuron(n: &mut Neuron, x: &mut Vec<Rc<RefCell<value::Value>>>) -> value::Value {
 	
 	if x.len() != n.w.len() {
 		println!("ERROR: data length {} doesn't equal weight length {}", x.len(), n.w.len());
@@ -78,6 +78,7 @@ fn activate_neuron<'a>(n: Neuron<'a>, x: Vec<Rc<RefCell<value::Value<'a>>>>) -> 
 		if v.len() == 1 {
 			nv.push(v.remove(0));
 		}
+		v = nv;
 	}
 
 	if n.relu {
@@ -87,10 +88,24 @@ fn activate_neuron<'a>(n: Neuron<'a>, x: Vec<Rc<RefCell<value::Value<'a>>>>) -> 
 	}
 }
 
+fn add_layer(n: &mut NeuralNetwork, inputs: i64, out: i64, r: bool) {
+	let mut ne = vec![];
+	for _ in 0..inputs {
+		ne.push(init_neuron(inputs, r));
+	}
 
-fn activate_layer(l: &mut Layer, x: &mut Vec<Vec<value::Value>>) -> Vec<Vec<value::Value>> {
+	let l = Layer {
+		neurons: ne, 
+		outputs: out
+	};
+
+	n.layers.push(l);
+}
+
+
+fn activate_layer(l: &mut Layer, x: &mut Vec<Vec<Rc<RefCell<value::Value>>>>) -> Vec<Vec<Rc<RefCell<value::Value>>>> {
 	if x.len() != l.neurons.len() {
-		println!("ERROR: ouput from previous layer length {} doesn't match number of neurons {}", x.len(), l.neurons.len());
+		println!("ERROR: output from previous layer length {} doesn't match number of neurons {}", x.len(), l.neurons.len());
 		std::process::exit(1);
 	}
 
@@ -101,18 +116,18 @@ fn activate_layer(l: &mut Layer, x: &mut Vec<Vec<value::Value>>) -> Vec<Vec<valu
 	for i in 0..x.len() {
 		let xi = &mut x[i];
 		let cn = &mut l.neurons[i];
-		let output = activate_neuron(cn, xi);
+		let output = Rc::new(RefCell::new(activate_neuron(cn, xi)));
 
 		for j in 0..l.outputs {
-			res[j as usize].push(output.clone());
+			res[j as usize].push(Rc::clone(&output));
 		}
 	}
 
 	res
 }
 
-/*
-fn forward(net: &mut NeuralNetwork, x: &mut Vec<Vec<value::Value>>) -> Vec<Vec<value::Value>> {
+
+fn forward(net: &mut NeuralNetwork, x: &mut Vec<Vec<Rc<RefCell<value::Value>>>>) -> Vec<Vec<Rc<RefCell<value::Value>>>> {
 	let mut curr = x;
 	let mut output = vec![];
 	for i in 0..net.layers.len() {
@@ -126,7 +141,36 @@ fn forward(net: &mut NeuralNetwork, x: &mut Vec<Vec<value::Value>>) -> Vec<Vec<v
 	let res = vec![];
 	res
 }
-*/
+
 fn main() {
+
+	/*
+	let mut n = NeuralNetwork {
+		layers: vec![]
+	};
+	add_layer(&mut n, 3, 1, true);
+
+	let mut q = vec![];
+	
+
+	forward(&mut n, &mut q);
+	*/
+
+	let mut p = init_neuron(3, true);
+
+	let mut ve = vec![];
+	for i in 1..4 {
+		let v = value::Value {
+			data: i as f64,
+			local_grad: 0.0,
+			global_grad: 0.0,
+			first_child: None,
+			second_child: None,
+		};
+		ve.push(Rc::new(RefCell::new(v)));
+	}
+
+	let val = activate_neuron(&mut p, &mut ve);
+	println!("{}", val.data);
 
 }

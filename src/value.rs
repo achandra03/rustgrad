@@ -1,16 +1,16 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct Value<'a> {
+pub struct Value {
 	pub data:f64,
 	pub local_grad:f64,
 	pub global_grad:f64,
-	pub first_child:Option<Rc<RefCell<Value<'a>>>>,
-	pub second_child:Option<Rc<RefCell<Value<'a>>>>
+	pub first_child:Option<Rc<RefCell<Value>>>,
+	pub second_child:Option<Rc<RefCell<Value>>>
 }
 
 
-pub fn add<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> Value<'a> { //a + b
+pub fn add(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a + b
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
 	this.borrow_mut().local_grad += 1.0;
@@ -26,7 +26,7 @@ pub fn add<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> V
 }
 
 
-pub fn mult<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> Value<'a> { //a * b
+pub fn mult(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a * b
 	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
 	this.borrow_mut().local_grad += data_2;
@@ -43,7 +43,7 @@ pub fn mult<'a>(this: Rc<RefCell<Value<'a>>>, other: Rc<RefCell<Value<'a>>>) -> 
 
 
 
-pub fn relu<'a>(this: Rc<RefCell<Value<'a>>>) -> Value<'a> {
+pub fn relu(this: Rc<RefCell<Value>>) -> Value {
 	let mut data_1 = this.borrow().data;
 	let mut grad:f64 = 1.0;
 	if data_1 < 0.0 {
@@ -62,7 +62,7 @@ pub fn relu<'a>(this: Rc<RefCell<Value<'a>>>) -> Value<'a> {
 	
 }
 
-pub fn tanh<'a>(this: Rc<RefCell<Value<'a>>>) -> Value<'a> {
+pub fn tanh(this: Rc<RefCell<Value>>) -> Value {
 	let data_1 = this.borrow().data;
 	this.borrow_mut().local_grad = 1.0 - (data_1.tanh() * data_1.tanh());
 	let parent = Value {
