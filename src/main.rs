@@ -1,6 +1,3 @@
-use std::collections::VecDeque;
-
-#[derive(Clone)]
 struct Value {
 	data:f64,
 	local_grad:f64,
@@ -42,7 +39,7 @@ fn mult(mut this: Value, mut other: Value) -> Value { //a * b
 fn sub(mut this: Value, mut other: Value) -> Value { //a - b
 	let data_1 = this.data;
 	let data_2 = other.data;
-	this.local_grad += 1.0;
+	this.local_grad = 1.0;
 	other.local_grad -= 1.0;
 	let parent = Value {
 		data: data_1 - data_2,
@@ -57,7 +54,7 @@ fn sub(mut this: Value, mut other: Value) -> Value { //a - b
 fn div(mut this: Value, mut other: Value) -> Value { //a / b
 	let data_1 = this.data;
 	let data_2 = other.data;
-	this.local_grad += 1.0 / data_2;
+	this.local_grad = 1.0 / data_2;
 	other.local_grad += -(data_1 / (data_2 * data_2));
 	let parent = Value {
 		data: data_1 - data_2,
@@ -91,7 +88,7 @@ fn relu(mut this: Value) -> Value {
 }
 
 fn tanh(mut this: Value) -> Value {
-	let mut data_1 = this.data;
+	let data_1 = this.data;
 	this.local_grad = 1.0 - (data_1.tanh() * data_1.tanh());
 	let parent = Value {
 		data: data_1.tanh(),
@@ -103,54 +100,39 @@ fn tanh(mut this: Value) -> Value {
 	parent
 }
 
-fn handle_topo(res: &mut Vec<Value>, q: &mut VecDeque<Value>, val: Value) {
-	let first_child = &val.first_child;
+
+fn backward(this: &mut Value, prev_grad: f64) {
+	this.global_grad = this.local_grad * prev_grad;
+
+	let first_child = &mut this.first_child;
 	match first_child {
-		Some(Box) => q.push_back((**Box).clone()),
+		Some(x) => backward(&mut *x, this.global_grad),
 		None => ()
 	}
 
-	let second_child = &val.second_child;
+	let second_child = &mut this.second_child;
 	match second_child {
-		Some(Box) => q.push_back((**Box).clone()),
+		Some(x) => backward(&mut *x, this.global_grad),
+		None => ()
+	}
+}
+
+fn print_graph(this: &Value) {
+	println!("Val: {}, local_grad: {}, global_grad: {}", this.data, this.local_grad, this.global_grad);
+
+	let first_child = &this.first_child;
+	match first_child {
+		Some(x) => print_graph(&*x),
 		None => ()
 	}
 
-	res.push(val);
-}
-
-fn topo(this: Value) -> Vec<Value> {
-	let mut q = VecDeque::from([this]);
-	let mut res = vec![];
-	while q.len() != 0 {
-		let curr = q.pop_front();
-		match curr {
-			Some(Value) => handle_topo(&mut res, &mut q, Value),
-			None => ()
-		}
-	}
-	res
-}
-
-fn backward(this: Value) {
-	let mut res = topo(this);
-	res[0].global_grad = 1.0;
-	for i in 0..res.len() {
-		let mut curr = &mut res[i];
-
-		let first_child = &mut curr.first_child;
-		match first_child {
-			Some(Box) => (*Box).global_grad = curr.global_grad * (*Box).local_grad,
-			None => ()
-		}
-
-		let second_child = &mut curr.second_child;
-		match second_child {
-			Some(Box) => (*Box).global_grad = curr.global_grad * (*Box).local_grad,
-			None => ()
-		}
+	let second_child = &this.second_child;
+	match second_child {
+		Some(x) => print_graph(&*x),
+		None => ()
 	}
 }
+
 
 
 fn main() {
@@ -189,7 +171,9 @@ fn main() {
 
 	let e = mult(a, b);
 	let f = add(c, d);
-	let g = mult(e, f);
+	let mut g = mult(e, f);
+	g.local_grad = 1.0;
 
-	backward(g);
+	backward(&mut g, 1.0);
+	print_graph(&g);
 }
