@@ -1,4 +1,5 @@
 mod value;
+
 use rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,6 +17,18 @@ struct Layer {
 
 struct NeuralNetwork {
 	pub layers: Vec<Layer>
+}
+
+fn create_val(x: f64) -> Rc<RefCell<value::Value>> {
+	let v = value::Value {
+		data: x,
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: None,
+		second_child: None
+	};
+	let val = Rc::new(RefCell::new(v));
+	val
 }
 
 fn init_neuron(size: i64, r: bool) -> Neuron {
@@ -90,9 +103,9 @@ fn activate_neuron(n: &mut Neuron, x: &mut Vec<Rc<RefCell<value::Value>>>) -> va
 	}
 }
 
-fn add_layer(n: &mut NeuralNetwork, inputs: i64, out: i64, r: bool) {
+fn add_layer(n: &mut NeuralNetwork, neurons: i64, inputs: i64, out: i64, r: bool) { 
 	let mut ne = vec![];
-	for _ in 0..inputs {
+	for _ in 0..neurons {
 		ne.push(init_neuron(inputs, r));
 	}
 
@@ -144,32 +157,136 @@ fn forward(net: &mut NeuralNetwork, x: &mut Vec<Vec<Rc<RefCell<value::Value>>>>)
 	res
 }
 
+fn mse(y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<value::Value>>>) -> value::Value {
+	if y_pred.len() != y_true.len() {
+		println!("ERROR: y_pred length {} doesn't equal y_true length {}", y_pred.len(), y_true.len());
+		std::process::exit(1);
+	}
+
+	let mut diffs = vec![];
+	let len = y_pred.len();
+	for i in 0..len {
+		let one = Rc::clone(&y_true[i]);
+		let two = Rc::clone(&y_pred[i]);
+		let v = value::sub(one, two);
+		let val = value::pow(Rc::new(RefCell::new(v)), 2.0);
+		diffs.push(val)
+	}
+
+	while diffs.len() != 1 {
+		let mut d = vec![];
+		while diffs.len() >= 2 {
+			let one = diffs.remove(0);
+			let two = diffs.remove(0);
+			let sum = value::add(Rc::new(RefCell::new(one)), Rc::new(RefCell::new(two)));
+			d.push(sum);
+		}
+		if diffs.len() == 1 {
+			d.push(diffs.remove(0));
+		}
+		diffs = d;
+	}
+
+	let denom = value::Value {
+		data: len as f64,
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: None,
+		second_child: None
+	};
+
+	let res = value::div(Rc::new(RefCell::new(diffs.remove(0))), Rc::new(RefCell::new(denom)));
+	res
+}
+
+
+fn gradient_descent(net: &mut NeuralNetwork, lr: f64, y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<value::Value>>>) { //step of descent and zeros gradients
+	let mut error = mse(y_true, y_pred);
+	error.local_grad = 1.0;
+	println!("mse is {}", error.data);
+	value::backward(&mut error, 1.0);
+	let layerlen = net.layers.len();
+	for i in 0..layerlen {
+		let mut layer = &mut net.layers[i];
+		let neuronlen = layer.neurons.len();
+		for j in 0..neuronlen {
+			let neuron = &mut layer.neurons[j];
+			let weightlen = neuron.w.len();
+			for k in 0..weightlen {
+				let weight = Rc::clone(&neuron.w[k]);
+				let mut weight_mut = weight.borrow_mut();
+				weight_mut.data -= lr * weight_mut.global_grad;
+				weight_mut.global_grad = 0.0;
+				weight_mut.local_grad = 0.0;
+			}
+			let bias = Rc::clone(&neuron.b);
+			let mut bias_mut = bias.borrow_mut();
+			bias_mut.data -= lr * bias_mut.global_grad;
+			bias_mut.local_grad = 0.0;
+			bias_mut.global_grad = 0.0;
+		}
+	}
+}
+
 fn main() {
 
-	let mut p = init_neuron(3, true);
+	let mut net = NeuralNetwork {
+		layers:vec![]
+	};
 
-	let mut ve = vec![];
-	for i in 1..4 {
-		let v = value::Value {
-			data: i as f64,
-			local_grad: 0.0,
-			global_grad: 0.0,
-			first_child: None,
-			second_child: None,
-		};
-		ve.push(Rc::new(RefCell::new(v)));
+	add_layer(&mut net, 3, 1, 4, false); //3 neurons each with 1 input and 4 outputs
+	add_layer(&mut net, 4, 3, 4, false); //4 neurons each with 3 inputs and 4 output
+	add_layer(&mut net, 4, 4, 1, false); //4 neurons each with 4 inputs and 1 output
+	add_layer(&mut net, 1, 4, 1, false); //1 neuron each with 4 inputs and 1 output
+	
+	let mut x = vec![];
+	let mut y_true = vec![];
+
+	let mut x_one = vec![];
+	x_one.push(create_val(2.0));
+	x_one.push(create_val(3.0));
+	x_one.push(create_val(-1.0));
+	x.push(x_one);
+
+	let mut x_two = vec![];
+	x_two.push(create_val(3.0));
+	x_two.push(create_val(-1.0));
+	x_two.push(create_val(0.5));
+	x.push(x_two);
+
+	let mut x_three = vec![];
+	x_three.push(create_val(0.5));
+	x_three.push(create_val(1.0));
+	x_three.push(create_val(1.0));
+	x.push(x_three);
+
+	let mut x_four = vec![];
+	x_four.push(create_val(1.0));
+	x_four.push(create_val(1.0));
+	x_four.push(create_val(-1.0));
+	x.push(x_four);
+
+	y_true.push(create_val(1.0));
+	y_true.push(create_val(-1.0));
+	y_true.push(create_val(-1.0));
+	y_true.push(create_val(1.0));
+
+	for _ in 0..10 {
+		let mut y_pred: Vec<Rc<RefCell<value::Value>>> = vec![];
+		let xlen = x.len();
+		for i in 0..xlen {
+			let mut x_inp = vec![];
+			let mut xvec = x[i];
+			x_inp.push(xvec);
+			let mut forward_pass = forward(&mut net, &mut x_inp);
+			let mut out_value = forward_pass.remove(0).remove(0);
+			y_pred.push(out_value);
+		}
+
+		gradient_descent(&mut net, 0.1, &mut y_true, &mut y_pred);
 	}
 
-	let mut val = activate_neuron(&mut p, &mut ve);
-	println!("Value is {}", val.data);
-	println!("\n");
-	val.local_grad = 1.0;
-	value::backward(&mut val, 1.0);
 
-	for i in 0..p.w.len() {
-		let w = &p.w[i];
-		let mut m = w.borrow_mut();
-		println!("Neuron with weight {} and gradient {}", m.data, m.global_grad);
-	}
+
 
 }

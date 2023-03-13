@@ -41,6 +41,49 @@ pub fn mult(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a 
 	parent
 }
 
+pub fn sub(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a - b 
+	let data_1 = this.borrow().data;
+	let data_2 = other.borrow().data;
+	this.borrow_mut().local_grad += 1.0;
+	other.borrow_mut().local_grad -= 1.0;
+	let parent = Value {
+		data: data_1 - data_2,
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: Some(this),
+		second_child: Some(other)
+	};
+	parent
+}
+
+pub fn div(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a / b 
+	let data_1 = this.borrow().data;
+	let data_2 = other.borrow().data;
+	this.borrow_mut().local_grad += 1.0 / data_2;
+	other.borrow_mut().local_grad += -data_1 / (data_2 * data_2);
+	let parent = Value {
+		data: data_1 / data_2,
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: Some(this),
+		second_child: Some(other)
+	};
+	parent
+}
+
+pub fn pow(this: Rc<RefCell<Value>>, other: f64) -> Value {
+	let data_1 = this.borrow().data;
+	this.borrow_mut().local_grad += other * data_1.powf(other - 1.0);
+	let parent = Value {
+		data: data_1.powf(other),
+		local_grad: 0.0,
+		global_grad: 0.0,
+		first_child: Some(this),
+		second_child: None
+	};
+	parent
+}
+
 
 
 pub fn relu(this: Rc<RefCell<Value>>) -> Value {
@@ -107,10 +150,4 @@ pub fn print_graph(this: &Value) {
 		Some(x) => print_graph(&x.borrow()),
 		None => ()
 	}
-}
-
-
-
-fn main() {
-
 }
