@@ -102,11 +102,11 @@ pub fn add_layer(n: &mut NeuralNetwork, neurons: i64, inputs: i64, out: i64, act
 
 	if n.layers.len() == 0 { //input weights should not modify data
 		for i in 0..neurons {
-			let mut neuron = &mut ne[i as usize];
+			let neuron = &mut ne[i as usize];
 			let weightlen = neuron.w.len();
 			
 			for j in 0..weightlen {
-				let mut weight = &mut neuron.w[j];
+				let weight = &mut neuron.w[j];
 				weight.borrow_mut().data = 1.0;
 			}
 		}
@@ -201,7 +201,7 @@ pub fn gradient_descent(net: &mut NeuralNetwork, lr: f64, y_true: &mut Vec<Rc<Re
 	let mut error = mse(y_true, y_pred);
 	error.global_grad = 1.0;
 	println!("mse is {}", error.data);
-	value::backward(&mut error, 1.0, "".to_string());
+	value::backward(Rc::new(RefCell::new(error)));
 	let layerlen = net.layers.len();
 	for i in 1..layerlen {
 		let layer = &mut net.layers[i];
@@ -235,11 +235,11 @@ pub fn print_weights(net: &mut NeuralNetwork) {
 			let weightlen = neuron.w.len();
 			for k in 0..weightlen {
 				let weight = Rc::clone(&neuron.w[k]);
-				let mut weight_mut = weight.borrow_mut();
+				let weight_mut = weight.borrow_mut();
 				println!("Layer {} neuron {} weight {}, with value {} and gradient {}", i, j, k, weight_mut.data, weight_mut.global_grad);
 			}
 			let bias = Rc::clone(&neuron.b);
-			let mut bias_mut = bias.borrow_mut();
+			let bias_mut = bias.borrow_mut();
 			println!("Layer {} neuron {} bias, with value {} and gradient {}", i, j, bias_mut.data, bias_mut.global_grad);
 		}
 	}

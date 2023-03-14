@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use rand::{distributions::Alphanumeric, Rng};
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct Value {
@@ -145,30 +146,57 @@ pub fn tanh(this: Rc<RefCell<Value>>) -> Value {
 	parent
 }
 
+pub fn handle_topo(x: Rc<RefCell<Value>>, q: &mut Vec<Rc<RefCell<Value>>>, visited: &mut HashSet<String>) {
+	let id = x.borrow().id.clone();
+	if !visited.contains(&id) {
+		q.push(Rc::clone(&x));
+		visited.insert(id);
+	}
+	
+}
 
-pub fn backward(this: &mut Value, prev_grad: f64, prev_id: String) {
-	if prev_id.ne("") {
-		let lg = this.local_grads.get(&prev_id);
-		let mut local_grad = 0.0;
-		match lg {
-			Some(d) => local_grad = *d,
-			None => println!("Not found")
-		};
 
-		this.global_grad += local_grad * prev_grad;
+pub fn backward(this: Rc<RefCell<Value>>) {
+	let mut topo = vec![];
+	let mut q = vec![];
+	let mut visited = HashSet::new();
+
+	q.push(Rc::clone(&this));
+	visited.insert(this.borrow().id.clone());
+
+	while q.len() != 0 {
+		let curr = q.remove(0);
+		match &mut curr.borrow_mut().first_child {
+			Some(x) => handle_topo(Rc::clone(&x), &mut q, &mut visited),
+			None => ()
+		}
+
+		match &mut curr.borrow_mut().second_child {
+			Some(x) => handle_topo(Rc::clone(&x), &mut q, &mut visited),
+			None => ()
+		}
+
+		topo.push(curr);
 	}
 
-	let first_child = &mut this.first_child;
-	match first_child {
-		Some(x) => backward(&mut x.borrow_mut(), this.global_grad, this.id.clone()),
-		None => ()
+	let mut global_grads = HashMap::new();
+	let last = topo.remove(0);
+	last.borrow_mut().global_grad = 1.0;
+	global_grads.insert(last.borrow().id.clone(), 1.0);
+
+	while topo.len() != 0 {
+		let curr = topo.remove(0);
+		let mut sum = 0.0;
+		for (id, grad) in &curr.borrow().local_grads {
+			match global_grads.get(id) {
+				Some(global_grad) => sum += grad * global_grad,
+				None => ()
+			}
+		}
+		curr.borrow_mut().global_grad = sum;
+		global_grads.insert(curr.borrow().id.clone(), sum);
 	}
 
-	let second_child = &mut this.second_child;
-	match second_child {
-		Some(x) => backward(&mut x.borrow_mut(), this.global_grad, this.id.clone()),
-		None => ()
-	}
 }
 
 pub fn print_graph(this: &Value) {

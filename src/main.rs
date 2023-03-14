@@ -1,52 +1,8 @@
 mod nn;
-use std::cell::RefCell;
-use std::rc::Rc;
+
 fn main() {
 	
-	/*
-	let mut net = nn::NeuralNetwork {
-		layers:vec![]
-	};
-	
-	nn::add_layer(&mut net, 1, 1, 3, "tanh".to_string());
-	nn::add_layer(&mut net, 3, 1, 1, "tanh".to_string());
-	nn::add_layer(&mut net, 1, 3, 1, "tanh".to_string());
-
-	let mut x = vec![];
-	let mut y_true = vec![];
-
-	for i in 1..10 {
-		let mut data = i;
-		let mut res = 1;
-
-		if data % 2 == 1 {
-			res = -1;
-		}
-
-		let mut xxi = vec![];
-		xxi.push(nn::nn::create_val(data as f64));
-		let mut xi = vec![];
-		xi.push(xxi);
-		x.push(xi);
-		y_true.push(nn::nn::create_val(res as f64));
-	}
-
-	for _ in 0..10 {
-		let mut y_pred = vec![];
-		let xlen = x.len();
-		for i in 0..xlen {
-			let mut xi = &mut x[i];
-			let mut forward_pass = nn::forward(&mut net, xi);
-			let mut output = forward_pass.remove(0).remove(0);
-			y_pred.push(output);
-		}
-
-		nn::gradient_descent(&mut net, 0.1, &mut y_true, &mut y_pred);
-	}
-	*/
-
-
-	/*		
+	//Usage example
 	let mut net = nn::NeuralNetwork {
 		layers:vec![]
 	};
@@ -88,7 +44,8 @@ fn main() {
 	y_true.push(nn::create_val(-1.0));
 	y_true.push(nn::create_val(1.0));
 
-	for _ in 0..10 {
+	let lr = 0.1;
+	for _ in 0..30 {
 		let mut y_pred = vec![];
 		let xlen = x.len();
 		for i in 0..xlen {
@@ -103,59 +60,9 @@ fn main() {
 			y_pred.push(out_value);
 		}
 
-		nn::gradient_descent(&mut net, 0.01, &mut y_true, &mut y_pred);
+		nn::gradient_descent(&mut net, lr, &mut y_true, &mut y_pred);
 	}
-	*/
-	
-	
-	let mut net = nn::NeuralNetwork {
-		layers:vec![]
-	};
-
-	nn::add_layer(&mut net, 1, 1, 2, "linear".to_string());
-	nn::add_layer(&mut net, 2, 1, 2, "linear".to_string());
-	nn::add_layer(&mut net, 2, 2, 1, "linear".to_string());
-	nn::add_layer(&mut net, 1, 2, 1, "linear".to_string());
 
 
-	for i in 1..4 {
-		let mut layer = &mut net.layers[i];
-		let mut neurons = &mut layer.neurons;
-		if i == 1 {
-			let mut first_layer_first_neuron = &mut neurons[0];
-			*&mut(first_layer_first_neuron.w[0]).borrow_mut().data = 2.0;
-
-			let mut first_layer_second_neuron = &mut neurons[1];
-			*&mut(first_layer_second_neuron.w[0]).borrow_mut().data = 3.0;
-		}
 		
-		if i == 2 {
-			let mut second_layer_first_neuron = &mut neurons[0];
-			*&mut(second_layer_first_neuron.w[0]).borrow_mut().data = 2.0;
-			*&mut(second_layer_first_neuron.w[1]).borrow_mut().data = 4.0;
-
-			let mut second_layer_second_neuron = &mut neurons[1];
-			*&mut(second_layer_second_neuron.w[0]).borrow_mut().data = 3.0;
-			*&mut(second_layer_second_neuron.w[1]).borrow_mut().data = 3.0;
-		}
-
-		if i == 3 {
-			let mut third_layer_first_neuron = &mut neurons[0];
-			*&mut(third_layer_first_neuron.w[0]).borrow_mut().data = 1.0;
-			*&mut(third_layer_first_neuron.w[1]).borrow_mut().data = 2.0;
-		}
-	}
-
-	let val = nn::create_val(1.0);
-	let mut v = vec![];
-	v.push(val);
-	let mut x = vec![];
-	x.push(v);
-	let mut res = nn::forward(&mut net, &mut x).remove(0).remove(0);	
-	println!("{}", res.borrow().data);
-	res.borrow_mut().global_grad = 1.0;
-	nn::value::backward(&mut res.borrow_mut(), 1.0, "".to_string());
-	nn::print_weights(&mut net);
-	
-
 }
