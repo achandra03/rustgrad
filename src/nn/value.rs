@@ -152,6 +152,22 @@ pub fn tanh(this: Rc<RefCell<Value>>) -> Value {
 	parent
 }
 
+pub fn sigmoid(this: Rc<RefCell<Value>>) -> Value {
+	let data_1 = this.borrow().data;
+	let i = random_string(50);
+	let sig = 1.0 / (1.0 + (-data_1).exp());
+	this.borrow_mut().local_grads.insert(i.clone(), sig * (1.0 - sig));
+	let parent = Value {
+		data: sig,
+		local_grads: HashMap::new(),
+		global_grad: 0.0,
+		first_child: Some(this),
+		second_child: None,
+		id: i
+	};
+	parent
+}
+
 pub fn handle_topo(x: Rc<RefCell<Value>>, q: &mut Vec<Rc<RefCell<Value>>>, visited: &mut HashSet<String>) {
 	let id = x.borrow().id.clone();
 	if !visited.contains(&id) {

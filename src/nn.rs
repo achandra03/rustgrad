@@ -89,7 +89,9 @@ fn activate_neuron(n: &mut Neuron, x: &mut Vec<Rc<RefCell<value::Value>>>) -> va
 		return value::relu(Rc::new(RefCell::new(val)));
 	} else if n.act.eq("tanh") {
 		return value::tanh(Rc::new(RefCell::new(val)));
-	} 
+	} else if n.act.eq("sigmoid") {
+		return value::sigmoid(Rc::new(RefCell::new(val)));
+	}
 
 	val
 }
