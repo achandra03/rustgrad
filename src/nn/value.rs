@@ -77,8 +77,12 @@ pub fn sub(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a -
 }
 
 pub fn div(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a / b 
-	let data_1 = this.borrow().data;
 	let data_2 = other.borrow().data;
+	if data_2 == 0.0 {
+		println!("ERROR: division by 0");
+		std::process::exit(1);
+	}
+	let data_1 = this.borrow().data;
 	let i = random_string(50);
 	this.borrow_mut().local_grads.insert(i.clone(), 1.0 / data_2);
 	other.borrow_mut().local_grads.insert(i.clone(), -data_1 / (data_2 * data_2));
@@ -93,16 +97,18 @@ pub fn div(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value { //a /
 	parent
 }
 
-pub fn pow(this: Rc<RefCell<Value>>, other: f64) -> Value {
+pub fn pow(this: Rc<RefCell<Value>>, other: Rc<RefCell<Value>>) -> Value {
 	let data_1 = this.borrow().data;
+	let data_2 = other.borrow().data;
 	let i = random_string(50);
-	this.borrow_mut().local_grads.insert(i.clone(), other * data_1.powf(other - 1.0));
+	this.borrow_mut().local_grads.insert(i.clone(), data_2 * data_1.powf(data_2 - 1.0));
+	other.borrow_mut().local_grads.insert(i.clone(), data_1.powf(data_2) * data_1.ln());
 	let parent = Value {
-		data: data_1.powf(other),
+		data: data_1.powf(data_2),
 		local_grads: HashMap::new(),
 		global_grad: 0.0,
 		first_child: Some(this),
-		second_child: None,
+		second_child: Some(other),
 		id: i
 	};
 	parent
@@ -183,6 +189,7 @@ pub fn backward(this: Rc<RefCell<Value>>) {
 	let last = topo.remove(0);
 	last.borrow_mut().global_grad = 1.0;
 	global_grads.insert(last.borrow().id.clone(), 1.0);
+	last.borrow_mut().local_grads = HashMap::new();
 
 	while topo.len() != 0 {
 		let curr = topo.remove(0);
@@ -190,11 +197,12 @@ pub fn backward(this: Rc<RefCell<Value>>) {
 		for (id, grad) in &curr.borrow().local_grads {
 			match global_grads.get(id) {
 				Some(global_grad) => sum += grad * global_grad,
-				None => ()
+				None => println!("ERROR: corresponding global gradient not found. This shouldn't happen")
 			}
 		}
 		curr.borrow_mut().global_grad = sum;
 		global_grads.insert(curr.borrow().id.clone(), sum);
+		curr.borrow_mut().local_grads = HashMap::new();
 	}
 
 }

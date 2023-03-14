@@ -172,7 +172,7 @@ fn mse(y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<
 		let one = Rc::clone(&y_true[i]);
 		let two = Rc::clone(&y_pred[i]);
 		let v = value::sub(one, two);
-		let val = value::pow(Rc::new(RefCell::new(v)), 2.0);
+		let val = value::pow(Rc::new(RefCell::new(v)), create_val(2.0));
 		diffs.push(val)
 	}
 
@@ -190,9 +190,7 @@ fn mse(y_true: &mut Vec<Rc<RefCell<value::Value>>>, y_pred: &mut Vec<Rc<RefCell<
 		diffs = d;
 	}
 
-	let denom = create_val(len as f64);
-
-	let res = value::div(Rc::new(RefCell::new(diffs.remove(0))), denom);
+	let res = value::div(Rc::new(RefCell::new(diffs.remove(0))), create_val(len as f64));
 	res
 }
 
