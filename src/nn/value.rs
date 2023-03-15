@@ -213,7 +213,7 @@ pub fn backward(this: Rc<RefCell<Value>>) {
 		for (id, grad) in &curr.borrow().local_grads {
 			match global_grads.get(id) {
 				Some(global_grad) => sum += grad * global_grad,
-				None => println!("ERROR: corresponding global gradient not found. This shouldn't happen")
+				None => ()
 			}
 		}
 		curr.borrow_mut().global_grad = sum;

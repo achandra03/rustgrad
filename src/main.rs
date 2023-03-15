@@ -1,5 +1,7 @@
 mod nn;
 
+use std::rc::Rc;
+
 fn main() {
 	
 	
@@ -8,7 +10,7 @@ fn main() {
 		layers:vec![]
 	};
 	
-		
+			
 	nn::add_layer(&mut net, 3, 1, 4, "tanh".to_string()); //3 neurons each with 1 input and 4 outputs
 	nn::add_layer(&mut net, 4, 3, 4, "tanh".to_string()); //4 neurons each with 3 inputs and 4 outputs
 	nn::add_layer(&mut net, 4, 4, 1, "tanh".to_string()); //4 neurons each with 4 inputs and 1 output
@@ -64,5 +66,6 @@ fn main() {
 
 		nn::gradient_descent(&mut net, lr, &mut y_true, &mut y_pred);
 	}
-		
+	
+
 }
